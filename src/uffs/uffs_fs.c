@@ -672,14 +672,11 @@ static URET do_FlushObject(uffs_Object *obj)
  */
 URET uffs_FlushObject(uffs_Object *obj)
 {
-	uffs_Device *dev;
-
 	if(obj->dev == NULL || obj->open_succ != U_TRUE) {
 		obj->err = UEBADF;
 		goto ext;
 	}
 
-	dev = obj->dev;
 	uffs_ObjectDevLock(obj);
 
 	if (do_FlushObject(obj) != U_SUCC)
@@ -699,8 +696,9 @@ ext:
  */
 URET uffs_CloseObject(uffs_Object *obj)
 {
-	uffs_Device *dev;
+
 #ifdef CONFIG_CHANGE_MODIFY_TIME
+	uffs_Device *dev;
 	uffs_Buf *buf;
 	uffs_FileInfo fi;
 #endif
@@ -710,13 +708,13 @@ URET uffs_CloseObject(uffs_Object *obj)
 		goto ext;
 	}
 
-	dev = obj->dev;
 	uffs_ObjectDevLock(obj);
 
 	if (obj->oflag & (UO_WRONLY|UO_RDWR|UO_APPEND|UO_CREATE|UO_TRUNC)) {
 
 #ifdef CONFIG_CHANGE_MODIFY_TIME
 		if (obj->node) {
+			dev = obj->dev;            
 			//need to change the last modify time stamp
 			if (obj->type == UFFS_TYPE_DIR)
 				buf = uffs_BufGetEx(dev, UFFS_TYPE_DIR, obj->node, 0, obj->oflag);
@@ -1159,6 +1157,11 @@ int uffs_ReadObject(uffs_Object *obj, void *data, int len)
  */
 long uffs_SeekObject(uffs_Object *obj, long offset, int origin)
 {
+#define IS_OVERFLOW(pos, offset) \
+	(sizeof(pos)<sizeof(offset)? \
+	pos+offset<0 || pos+offset>=(1<<sizeof(pos)) \
+	: offset<0 && pos+offset>=pos || offset>0 && pos+offset<=pos)
+
 	if (obj->type == UFFS_TYPE_DIR) {
 		uffs_Perror(UFFS_ERR_NOISY, "Can't seek a dir object!");
 		obj->err = UEACCES;
@@ -1167,7 +1170,7 @@ long uffs_SeekObject(uffs_Object *obj, long offset, int origin)
 		uffs_ObjectDevLock(obj);
 		switch (origin) {
 			case USEEK_CUR:
-				if (obj->pos + offset < 0) {
+				if (IS_OVERFLOW(obj->pos, offset)) {
 					obj->err = UEINVAL;
 				}
 				else {
@@ -1183,7 +1186,7 @@ long uffs_SeekObject(uffs_Object *obj, long offset, int origin)
 				}
 				break;
 			case USEEK_END:
-				if (obj->node->u.file.len + offset < 0) {
+				if (IS_OVERFLOW(obj->node->u.file.len, offset)) {
 					obj->err = UEINVAL;
 				}
 				else {
@@ -1193,8 +1196,8 @@ long uffs_SeekObject(uffs_Object *obj, long offset, int origin)
 		}
 		uffs_ObjectDevUnLock(obj);
 	}
-
-	return (obj->err == UENOERR ? obj->pos : -1);
+#undef IS_OVERFLOW
+	return (obj->err == UENOERR ? (long)obj->pos : -1);
 }
 
 /**

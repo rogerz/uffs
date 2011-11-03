@@ -90,7 +90,6 @@ void uffs_BadBlockRecover(uffs_Device *dev)
 	UBOOL goodBlockIsDirty = U_FALSE;
 	int ret;
 	int region;
-	u8 type;
 	
 	if (dev->bad.block == UFFS_INVALID_BLOCK)
 		return;
@@ -170,15 +169,12 @@ void uffs_BadBlockRecover(uffs_Device *dev)
 			switch (region) {
 			case SEARCH_REGION_DIR:
 				bad->u.dir.block = good->u.list.block;
-				type = UFFS_TYPE_DIR;
 				break;
 			case SEARCH_REGION_FILE:
 				bad->u.file.block = good->u.list.block;
-				type = UFFS_TYPE_FILE;
 				break;
 			case SEARCH_REGION_DATA:
 				bad->u.data.block = good->u.list.block;
-				type = UFFS_TYPE_DATA;
 			}
 			
 			//from now, the 'bad' is actually good block :)))
