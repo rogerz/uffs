@@ -98,7 +98,7 @@ typedef struct uffs_memAllocatorSt {
 #endif
 
 #if CONFIG_USE_STATIC_MEMORY_ALLOCATOR > 0
-	char *buf_start;
+	u8 *buf_start;
 	int buf_size;
 	int pos;
 #endif

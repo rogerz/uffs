@@ -20,3 +20,4 @@ src\uffs\uffs_public.c
 src\uffs\uffs_tree.c
 src\uffs\uffs_utils.c
 src\port\uffs_os_tx.c
+src\port\uffs_port_test.c
